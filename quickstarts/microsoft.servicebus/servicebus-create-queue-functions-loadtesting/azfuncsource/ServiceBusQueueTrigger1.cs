@@ -5,12 +5,13 @@ using Microsoft.Extensions.Logging;
 
 namespace ServiceBusProcess
 {
-    public class ServiceBusQueueTrigger1
+    public static class ServiceBusTrigger
+{
+    [FunctionName("ServiceBusQueueTrigger1")]
+    public static void Run([ServiceBusTrigger("myinputqueue", 
+        Connection = "ServiceBusConnection")]string myQueueItem, ILogger log)
     {
-        [FunctionName("ServiceBusQueueTrigger1")]
-        public void Run([ServiceBusTrigger("myqueue", Connection = "sotmessagesns_SERVICEBUS")]string myQueueItem, ILogger log)
-        {
-            log.LogInformation($"C# ServiceBus queue trigger function processed message: {myQueueItem}");
-        }
+        log.LogInformation($"C# ServiceBus queue trigger function processed message: {myQueueItem}");
     }
+}
 }

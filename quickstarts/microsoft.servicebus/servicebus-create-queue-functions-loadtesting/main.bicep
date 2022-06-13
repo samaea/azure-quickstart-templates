@@ -8,7 +8,7 @@ param serviceBusQueueName string
 param location string = resourceGroup().location
 
 @description('The name of the function app that you wish to create.')
-param appNameBlastMessages string = 'fnapp${uniqueString(resourceGroup().id)}'
+param appNameConsumer string = 'fnapp${uniqueString(resourceGroup().id)}'
 
 @allowed([
   'Standard_LRS'
@@ -26,9 +26,14 @@ param storageAccountType string = 'Standard_LRS'
 ])
 param runtime string = 'dotnet'
 
-var functionAppName = appNameBlastMessages
-var hostingPlanName = appNameBlastMessages
-var applicationInsightsName = appNameBlastMessages
+param repoUrl string
+param repoBranchProduction string
+
+param fnAppIdentityName string = 'id-app-${appNameConsumer}-${uniqueString(resourceGroup().id, appNameConsumer)}'
+param serviceBusFqdn string
+var functionAppName = appNameConsumer
+var hostingPlanName = appNameConsumer
+var applicationInsightsName = appNameConsumer
 var storageAccountName = '${uniqueString(resourceGroup().id)}azfunctions'
 var functionWorkerRuntime = runtime
 
@@ -79,6 +84,8 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2021-03-01' = {
   properties: {}
 }
 
+
+
 resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
   name: functionAppName
   location: location
@@ -104,11 +111,7 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~2'
-        }
-        {
-          name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~10'
+          value: '~4'
         }
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
@@ -118,11 +121,64 @@ resource functionApp 'Microsoft.Web/sites@2021-03-01' = {
           name: 'FUNCTIONS_WORKER_RUNTIME'
           value: functionWorkerRuntime
         }
+        {
+          name: 'PROJECT'
+          value: 'quickstarts/microsoft.servicebus/servicebus-create-queue-functions-loadtesting/azfuncsource'
+        }
+        {
+          name: 'ServiceBusConnection__fullyQualifiedNamespace'
+          value: serviceBusFqdn
+        }
+        {
+          name: 'ServiceBusQueueName'
+          value: 'myqueue'
+        }
       ]
-      ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
     }
     httpsOnly: true
+  }
+}
+
+resource fnAppUai 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
+  name: fnAppIdentityName
+}
+
+resource webAppConfig 'Microsoft.Web/sites/config@2019-08-01' = {
+  parent: functionApp
+  name: 'web'
+  properties: {
+    scmType: 'ExternalGit'
+  }
+}
+
+resource webAppLogging 'Microsoft.Web/sites/config@2021-02-01' = {
+  parent: functionApp
+  name: 'logs'
+  properties: {
+    applicationLogs: {
+      fileSystem: {
+        level: 'Warning'
+      }
+    }
+    httpLogs: {
+      fileSystem: {
+        enabled: true
+        retentionInDays: 1
+        retentionInMb: 25
+      }
+    }
+  }
+}
+
+
+resource codeDeploy 'Microsoft.Web/sites/sourcecontrols@2021-01-15' = if (!empty(repoUrl)) {
+  parent: functionApp
+  name: 'web'
+  properties: {
+    repoUrl: repoUrl
+    branch: repoBranchProduction
+    isManualIntegration: true
   }
 }
 

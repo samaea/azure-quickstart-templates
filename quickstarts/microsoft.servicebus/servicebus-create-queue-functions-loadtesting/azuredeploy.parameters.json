@@ -6,10 +6,19 @@
       "value": "sot-messagesns"
     },
     "serviceBusQueueName": {
-      "value": "sot-queue"
+      "value": "myqueue"
     },
-    "appNameBlastMessages": {
+    "appNameConsumer": {
       "value": "sot-blastmessagesfunc"
+  },
+  "repoUrl": {
+    "value": "https://github.com/samaea/azure-quickstart-templates"
+  },
+  "repoBranchProduction": {
+    "value": "feature/bicep/servicebus-functions/loadtesting"
+  },
+  "serviceBusFqdn": {
+    "value": "sot-messagesns.servicebus.windows.net"
   }
   }
 }
